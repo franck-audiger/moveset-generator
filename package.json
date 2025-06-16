@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "pngjs": "^7.0.0",
+    "puppeteer": "^24.10.1"
+  }
+}
