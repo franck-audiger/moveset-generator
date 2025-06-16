@@ -46,7 +46,7 @@ HARD REQUIREMENTS
 
 - Output only a PNG file with a 3x3 layout.
 - Middle column (Col 2) = idle pose for each direction.
-- Each idle frame in column 2 must be strictly oriented: for row 1, the character must face perfectly forward (not angled or rotated); same applies for rows 2 and 3 according to their direction.
+- Each frame must be strictly oriented: for row 1, the character must face perfectly forward (not angled or rotated); same applies for rows 2 and 3 according to their direction.
 - Each row strictly represents one direction (never mix up viewpoints).
 - Character in each frame must be scaled equally.
 - Sprite must be visibly distinct in leg positions for walking frames (Col 1 & 3).
