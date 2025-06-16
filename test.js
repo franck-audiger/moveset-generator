@@ -46,7 +46,7 @@ async function generateMovesheet(page, imagePath) {
   if (!fileInput) throw new Error("Cannot find file input.");
   await fileInput.uploadFile(path.resolve(imagePath));
 
-  let basePrompt = `Generate a movesheet of Gon based on this reference.`;
+  let basePrompt = `Generate a movesheet of this character based on this reference.`;
   let previousUrls = new Set();
   let attempt = 0;
 

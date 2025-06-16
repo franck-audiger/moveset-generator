@@ -45,7 +45,7 @@ VISUAL STYLE
 HARD REQUIREMENTS
 
 - Output only a PNG file with a 3x3 layout.
-- Middle column (Col 2) = idle pose for each direction.
+- Middle column (Col 2) = idle pose for each directions (Lines 1, 2 and 3 : column 2), feet need to be aligned and both on floor in standing position.
 - Each row strictly represents one direction (never mix up viewpoints).
 - Character in each frame must be scaled equally.
 - Sprite must be visibly distinct in leg positions for walking frames (Col 1 & 3).
