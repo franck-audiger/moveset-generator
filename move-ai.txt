@@ -45,8 +45,13 @@ VISUAL STYLE
 HARD REQUIREMENTS
 
 - Output only a PNG file with a 3x3 layout.
-- Middle column (Col 2) = idle pose for each direction.
-- Each frame must be strictly oriented: for row 1, the character must face perfectly forward (not angled or rotated); same applies for rows 2 and 3 according to their direction.
+- All three rows (directions) must be present—never generate fewer than 3 rows.
+- Each frame must be strictly oriented and orthogonal: 
+  - Row 1 (facing down) must show the character perfectly front-facing with both shoulders aligned.
+  - Row 2 (facing left) must be a perfect left profile (not angled).
+  - Row 3 (facing up) must be a direct back view.
+- No diagonal, semi-rotated, or three-quarter views are allowed.
 - Each row strictly represents one direction (never mix up viewpoints).
+- Middle column (Col 2) = idle pose for each direction.
 - Character in each frame must be scaled equally.
 - Sprite must be visibly distinct in leg positions for walking frames (Col 1 & 3).

@@ -38,7 +38,8 @@ async function downloadImage(imageUrl, outputPath) {
   });
 }
 
-async function generateMovesheet(page, imagePath) {
+async function generateMovesheet(browser, imagePath) {
+  const page = await browser.newPage();
   await page.goto(CHATGPT_URL, { waitUntil: 'networkidle2', timeout: 60000 });
   await page.waitForSelector('.ProseMirror', { timeout: 60000 });
 
@@ -79,11 +80,13 @@ async function generateMovesheet(page, imagePath) {
           if (validAlpha) {
             fs.renameSync(tmpPath, 'output.png');
             console.log("✅ Image downloaded with transparent background.");
+            await page.close();
             return 'output.png';
           } else {
             console.log("⚠️ Image has no transparency.");
             fs.unlinkSync(tmpPath);
-            break;
+            await page.close();
+            return null;
           }
         }
       }
@@ -94,6 +97,7 @@ async function generateMovesheet(page, imagePath) {
     attempt++;
   }
 
+  await page.close();
   throw new Error("⛔ No valid PNG with transparency generated after all attempts.");
 }
 
@@ -162,8 +166,8 @@ async function run(imagePath) {
     let validated = false;
     let attempt = 0;
 
-    while (!validated && attempt < 5) {
-      const result = await generateMovesheet(page, imagePath);
+    while (!validated && attempt < 10) {
+      const result = await generateMovesheet(browser, imagePath);
 
       if (result) {
         const valid = await validateWithSecondGPT(page, result);
@@ -174,8 +178,8 @@ async function run(imagePath) {
           attempt++;
         }
       } else {
-        console.warn("⚠️ No image generated.");
-        break;
+        console.log("🔁 Retrying generation due to missing transparency...");
+        attempt++;
       }
     }
 
