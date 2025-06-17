@@ -11,6 +11,16 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+function randomSleep(min = 2000, max = 15000) {
+  const args = process.argv.slice(2);
+  const debugMode = args.includes("-debug");
+  if (!debugMode) return Promise.resolve();
+  const ms = Math.floor(Math.random() * (max - min + 1)) + min;
+  const seconds = (ms / 1000).toFixed(2);
+  console.log(`⏳ Debug sleep: Waiting ${seconds} seconds...`);
+  return sleep(ms);
+}
+
 function isPngComplete(filePath) {
   const data = fs.readFileSync(filePath);
   const eof = Buffer.from([0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82]);
@@ -40,8 +50,10 @@ async function downloadImage(imageUrl, outputPath) {
 
 async function generateMovesheet(browser, imagePath, attempt) {
   const page = await browser.newPage();
+  await randomSleep();
   await page.goto(CHATGPT_URL, { waitUntil: 'networkidle2', timeout: 60000 });
   await page.waitForSelector('.ProseMirror', { timeout: 60000 });
+  await randomSleep();
 
   const fileInput = await page.$('input[type="file"]');
   if (!fileInput) throw new Error("Cannot find file input.");
@@ -54,6 +66,7 @@ async function generateMovesheet(browser, imagePath, attempt) {
   while (attemptLocal < 2) {
     await page.type('.ProseMirror', basePrompt);
     await sleep(5000);
+    await randomSleep();
     await page.keyboard.press('Enter');
 
     const timeoutMs = 180000;
@@ -61,6 +74,7 @@ async function generateMovesheet(browser, imagePath, attempt) {
     let imageUrl = null;
 
     while (Date.now() - start < timeoutMs) {
+      await randomSleep();
       const imageHandles = await page.$$('img[alt="Image générée"]');
       for (let handle of imageHandles.reverse()) {
         const src = await handle.evaluate(img => img.src);
@@ -98,6 +112,7 @@ async function generateMovesheet(browser, imagePath, attempt) {
 
     basePrompt = `Generate the exact same image again, but ensure the background is fully transparent using true alpha channel.`;
     attemptLocal++;
+    await randomSleep();
   }
 
   await page.close();
@@ -105,13 +120,16 @@ async function generateMovesheet(browser, imagePath, attempt) {
 }
 
 async function validateWithSecondGPT(page, outputPath, attempt) {
+  await randomSleep();
   await page.goto(QA_URL, { waitUntil: 'networkidle2', timeout: 60000 });
   await page.waitForSelector('.ProseMirror', { timeout: 60000 });
+  await randomSleep();
 
   const fileInput = await page.$('input[type="file"]');
   if (!fileInput) throw new Error("❌ Cannot find QA file input.");
   await fileInput.uploadFile(path.resolve(outputPath));
   await sleep(5000);
+  await randomSleep();
 
   await page.type('.ProseMirror', 'Please validate this movesheet.');
   await page.keyboard.press('Enter');
@@ -121,6 +139,7 @@ async function validateWithSecondGPT(page, outputPath, attempt) {
   const start = Date.now();
 
   while (Date.now() - start < timeoutMs) {
+    await randomSleep();
     const content = await page.evaluate(() => {
       const block = document.querySelector('div.markdown.prose');
       return block ? block.innerText : '';
@@ -176,9 +195,11 @@ async function run(imagePath) {
     let attempt = 0;
 
     while (!validated && attempt < 10) {
+      await randomSleep();
       const result = await generateMovesheet(browser, imagePath, attempt);
 
       if (result) {
+        await randomSleep();
         const valid = await validateWithSecondGPT(page, result, attempt);
         if (valid) {
           validated = true;
@@ -199,8 +220,8 @@ async function run(imagePath) {
 }
 
 const args = process.argv.slice(2);
-if (args.length !== 1) {
-  console.error("❌ Usage: node generate_sprite_automated.js path/to/image.png");
+if (args.length < 1) {
+  console.error("❌ Usage: node generate_sprite_automated.js path/to/image.png [-debug]");
   process.exit(1);
 }
 
