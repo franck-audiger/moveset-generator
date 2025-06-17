@@ -38,7 +38,7 @@ async function downloadImage(imageUrl, outputPath) {
   });
 }
 
-async function generateMovesheet(browser, imagePath) {
+async function generateMovesheet(browser, imagePath, attempt) {
   const page = await browser.newPage();
   await page.goto(CHATGPT_URL, { waitUntil: 'networkidle2', timeout: 60000 });
   await page.waitForSelector('.ProseMirror', { timeout: 60000 });
@@ -49,9 +49,9 @@ async function generateMovesheet(browser, imagePath) {
 
   let basePrompt = `Generate a movesheet of this character based on this reference.`;
   let previousUrls = new Set();
-  let attempt = 0;
+  let attemptLocal = 0;
 
-  while (attempt < 2) {
+  while (attemptLocal < 2) {
     await page.type('.ProseMirror', basePrompt);
     await sleep(5000);
     await page.keyboard.press('Enter');
@@ -84,7 +84,10 @@ async function generateMovesheet(browser, imagePath) {
             return 'output.png';
           } else {
             console.log("⚠️ Image has no transparency.");
-            fs.unlinkSync(tmpPath);
+            const failDir = path.join(__dirname, 'FAIL');
+            if (!fs.existsSync(failDir)) fs.mkdirSync(failDir);
+            const failName = `fail_transparency_${attempt + 1}.png`;
+            fs.renameSync(tmpPath, path.join(failDir, failName));
             await page.close();
             return null;
           }
@@ -94,14 +97,14 @@ async function generateMovesheet(browser, imagePath) {
     }
 
     basePrompt = `Generate the exact same image again, but ensure the background is fully transparent using true alpha channel.`;
-    attempt++;
+    attemptLocal++;
   }
 
   await page.close();
   throw new Error("⛔ No valid PNG with transparency generated after all attempts.");
 }
 
-async function validateWithSecondGPT(page, outputPath) {
+async function validateWithSecondGPT(page, outputPath, attempt) {
   await page.goto(QA_URL, { waitUntil: 'networkidle2', timeout: 60000 });
   await page.waitForSelector('.ProseMirror', { timeout: 60000 });
 
@@ -128,6 +131,12 @@ async function validateWithSecondGPT(page, outputPath) {
       return true;
     } else if (content.includes("RESULT: FAIL")) {
       console.warn("❌ Validation failed: RESULT: FAIL");
+      const failDir = path.join(__dirname, 'FAIL');
+      if (!fs.existsSync(failDir)) fs.mkdirSync(failDir);
+      const failName = `fail_validation_${attempt + 1}.png`;
+      fs.renameSync(outputPath, path.join(failDir, failName));
+      const logPath = path.join(failDir, `fail_validation_${attempt + 1}.txt`);
+      fs.writeFileSync(logPath, content, 'utf-8');
       return false;
     }
 
@@ -167,10 +176,10 @@ async function run(imagePath) {
     let attempt = 0;
 
     while (!validated && attempt < 10) {
-      const result = await generateMovesheet(browser, imagePath);
+      const result = await generateMovesheet(browser, imagePath, attempt);
 
       if (result) {
-        const valid = await validateWithSecondGPT(page, result);
+        const valid = await validateWithSecondGPT(page, result, attempt);
         if (valid) {
           validated = true;
         } else {
